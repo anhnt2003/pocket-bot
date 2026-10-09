@@ -1,0 +1,23 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <!-- Test names read as sentences: Method_does_something_when_condition -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!-- Coverage gate: `dotnet test` fails when line or branch coverage of the project under test
+         (X.Tests measures assembly X only) drops below 90% -->
+    <CoverageTarget>$(MSBuildProjectName.Replace('.Tests', ''))</CoverageTarget>
+    <TestingPlatformCommandLineArguments>--coverlet --coverlet-include "[$(CoverageTarget)]*" --coverlet-file-prefix $(MSBuildProjectName) --coverlet-output-format cobertura --coverlet-threshold 90 --coverlet-threshold-type line,branch --coverlet-threshold-stat total --coverlet-exclude-by-file "**/Program.cs" --coverlet-exclude-by-file "**/obj/**"</TestingPlatformCommandLineArguments>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.MTP" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Shouldly" />
+  </ItemGroup>
+</Project>

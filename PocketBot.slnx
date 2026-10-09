@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PocketBot.Core/PocketBot.Core.csproj" />
+    <Project Path="src/PocketBot.Host/PocketBot.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PocketBot.Core.Tests/PocketBot.Core.Tests.csproj" />
+    <Project Path="tests/PocketBot.Host.Tests/PocketBot.Host.Tests.csproj" />
+  </Folder>
+</Solution>
