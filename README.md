@@ -1,71 +1,73 @@
 # 🤖 Pocket Bot
 
-Bot Telegram cá nhân viết bằng C# (.NET 10). Bot nhận tin nhắn, phản hồi và thực hiện action khi bạn tương tác. Có menu trực quan, đóng/mở được.
+A personal Telegram bot written in C# (.NET 10). It receives messages, replies, and runs actions as you interact with it, through a visual menu you can collapse and reopen.
 
-## Tính năng hiện có
+## Features
 
-- **Kết nối Telegram** bằng long polling, không cần domain hay HTTPS. Khi mất mạng bot tự chờ lâu dần (1s → 30s) rồi hồi phục.
-- **Menu inline** được edit tại chỗ (không spam chat), có breadcrumb, `⬅️ Quay lại` và `🏠 Menu chính`.
-- **Đóng/mở menu**: `✖️ Đóng menu` thu gọn menu thành `📂 Mở menu`, mở lại sẽ về đúng trang đang xem. Nút `📋 Menu` luôn nằm ở bàn phím.
-- **Menu chính**: 📝 Ghi chú · ⏰ Nhắc việc · 💰 Thu chi · ⚙️ Cài đặt · ❓ Trợ giúp. Các chức năng bên trong hiện báo "🚧 đang phát triển".
-- **Phản hồi tin nhắn**: `/start`, `/menu`, `/help`; text thường được xác nhận đã nhận; lệnh lạ và tin nhắn không phải chữ có thông báo riêng.
-- **Bot cá nhân**: chỉ user ID trong whitelist mới dùng được.
+- **Telegram connection** via long polling, so no domain or HTTPS is needed. When Telegram is unreachable, the bot waits progressively longer between retries (1s → 30s) and recovers on its own.
+- **Inline menu** edited in place (no chat spam), with a breadcrumb, `⬅️ Quay lại` (Back) and `🏠 Menu chính` (Main menu).
+- **Collapsible menu**: `✖️ Đóng menu` (Close) folds the menu into `📂 Mở menu` (Open), which reopens it on the page you were viewing. The `📋 Menu` button always stays on the keyboard.
+- **Main menu**: 📝 Ghi chú (Notes) · ⏰ Nhắc việc (Reminders) · 💰 Thu chi (Finance) · ⚙️ Cài đặt (Settings) · ❓ Trợ giúp (Help). The features inside currently reply "🚧 đang phát triển" (in development).
+- **Message handling**: `/start`, `/menu`, `/help`; plain text is acknowledged; unknown commands and non-text messages get their own replies.
+- **Personal bot**: only user IDs on the whitelist can use it.
 
-## Cài đặt & chạy
+The bot's UI copy is Vietnamese; labels above are quoted as they appear in Telegram.
 
-Yêu cầu: [.NET SDK 10](https://dotnet.microsoft.com/download).
+## Setup & run
 
-1. **Tạo bot**: nhắn [@BotFather](https://t.me/BotFather) lệnh `/newbot`, rồi copy token.
-2. **Lưu token** (token không nằm trong repo):
+Requires [.NET SDK 10](https://dotnet.microsoft.com/download).
+
+1. **Create a bot**: send `/newbot` to [@BotFather](https://t.me/BotFather), then copy the token.
+2. **Store the token** (it never goes in the repo):
    ```bash
    dotnet user-secrets set "Telegram:BotToken" "<token>" --project src/PocketBot.Host
    ```
-3. **Chạy bot**:
+3. **Run the bot**:
    ```bash
    dotnet run --project src/PocketBot.Host
    ```
-   Log hiện `Connected to Telegram as @<tên bot>` là đã kết nối thành công.
-4. **Thêm bạn vào whitelist**: nhắn bot bất kỳ tin gì. Bot trả lời ⛔ kèm **User ID** của bạn. Thêm ID đó vào config rồi chạy lại:
+   The log line `Connected to Telegram as @<bot name>` means it is connected.
+4. **Whitelist yourself**: send the bot any message. It replies ⛔ with your **User ID**. Add that ID to the config and run again:
    ```bash
    dotnet user-secrets set "Telegram:AllowedUserIds:0" "<user id>" --project src/PocketBot.Host
    ```
-5. Gõ `/start` để bắt đầu.
+5. Send `/start` to begin.
 
-| Cấu hình | Ý nghĩa | Mặc định |
-|----------|---------|----------|
-| `Telegram:BotToken` | Token từ @BotFather (bắt buộc) | — |
-| `Telegram:AllowedUserIds` | Danh sách user ID được dùng bot | rỗng (từ chối tất cả) |
-| `Telegram:DropPendingUpdates` | Bỏ qua tin nhắn gửi đến lúc bot đang tắt | `false` |
+| Setting | Meaning | Default |
+|---------|---------|---------|
+| `Telegram:BotToken` | Token from @BotFather (required) | — |
+| `Telegram:AllowedUserIds` | User IDs allowed to use the bot | empty (everyone is refused) |
+| `Telegram:DropPendingUpdates` | Skip messages sent while the bot was offline | `false` |
 
-Ngoài user-secrets, bạn có thể đặt cấu hình qua biến môi trường, ví dụ `Telegram__BotToken=...`. Chỉ chạy **một** instance cùng lúc, vì Telegram không cho hai tiến trình cùng poll.
+Besides user-secrets, you can set configuration through environment variables, e.g. `Telegram__BotToken=...`. Run only **one** instance at a time, because Telegram doesn't allow two processes to poll the same bot.
 
-## Phát triển
+## Development
 
 ```bash
 dotnet build PocketBot.slnx
 dotnet test PocketBot.slnx
 ```
 
-Dự án làm theo **TDD**. `dotnet test` sẽ **fail nếu coverage dưới 90%** (line hoặc branch). Hiện cả hai project đều đạt 100%. File báo cáo cobertura nằm trong `tests/*/bin/Debug/net10.0/TestResults/`. Muốn xem dạng HTML thì chạy:
+The project follows **TDD**. `dotnet test` **fails if coverage drops below 90%** (line or branch). Both projects are currently at 100%. Cobertura reports are written to `tests/*/bin/Debug/net10.0/TestResults/`. For an HTML view, run:
 
 ```bash
 dotnet tool install -g dotnet-reportgenerator-globaltool
 reportgenerator -reports:"tests/**/TestResults/*.cobertura*.xml" -targetdir:coverage
 ```
 
-### Cấu trúc
+### Layout
 
 ```
 src/
-  PocketBot.Core/     # logic bot: router, menu, lệnh, text — không phụ thuộc Telegram.Bot
-  PocketBot.Host/     # Worker Service: adapter Telegram, polling, cấu hình, DI
+  PocketBot.Core/     # bot logic: router, menu, commands, texts — no Telegram.Bot dependency
+  PocketBot.Host/     # Worker Service: Telegram adapter, polling, configuration, DI
 tests/
   PocketBot.Core.Tests/
   PocketBot.Host.Tests/
 ```
 
-### Thêm chức năng mới
+### Adding a feature
 
-1. Khai báo node trong `src/PocketBot.Core/Menus/DefaultMenu.cs`.
-2. Viết class implement `IMenuAction` có `NodeId` trùng với node đó, rồi đăng ký vào DI. Bấm nút là action chạy.
-3. Nếu cần lệnh `/xyz` mới, implement `ICommandHandler`.
+1. Declare the node in `src/PocketBot.Core/Menus/DefaultMenu.cs`.
+2. Implement `IMenuAction` with a `NodeId` matching that node, then register it in DI. Tapping the button runs the action.
+3. For a new `/xyz` command, implement `ICommandHandler`.
