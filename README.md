@@ -62,7 +62,6 @@ src/
 tests/
   PocketBot.Core.Tests/
   PocketBot.Host.Tests/
-docs/agentic-workflow/tech-designs/   # thiết kế kỹ thuật
 ```
 
 ### Thêm chức năng mới
@@ -70,5 +69,3 @@ docs/agentic-workflow/tech-designs/   # thiết kế kỹ thuật
 1. Khai báo node trong `src/PocketBot.Core/Menus/DefaultMenu.cs`.
 2. Viết class implement `IMenuAction` có `NodeId` trùng với node đó, rồi đăng ký vào DI. Bấm nút là action chạy.
 3. Nếu cần lệnh `/xyz` mới, implement `ICommandHandler`.
-
-Thiết kế chi tiết: [docs/agentic-workflow/tech-designs/2026-10-09-telegram-foundation.md](docs/agentic-workflow/tech-designs/2026-10-09-telegram-foundation.md).

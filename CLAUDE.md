@@ -1,6 +1,6 @@
 # Pocket Bot
 
-Personal Telegram bot in C# (.NET 10). Design: `docs/agentic-workflow/tech-designs/2026-10-09-telegram-foundation.md`.
+Personal Telegram bot in C# (.NET 10).
 
 ## Commands
 
