@@ -1,7 +1,9 @@
+using Copy = PocketBot.Core.Texts.BotTexts.Menu;
+
 namespace PocketBot.Core.Menus;
 
 /// <summary>
-/// The bot's menu tree. Bodies are Telegram HTML. To plug a feature in, register an
+/// The bot's menu tree; its copy lives in <see cref="Copy"/>. To plug a feature in, register an
 /// <see cref="IMenuAction"/> whose NodeId matches one of the action ids below.
 /// </summary>
 public static class DefaultMenu
@@ -10,31 +12,19 @@ public static class DefaultMenu
     public const string HelpId = "help";
 
     public static MenuNode Build() =>
-        MenuNode.Submenu(RootId, "🏠 Menu chính", "Chọn chức năng bạn cần 👇",
-            MenuNode.Submenu("notes", "📝 Ghi chú", "Lưu lại ý tưởng và việc cần nhớ.",
-                MenuNode.Action("notes.add", "➕ Thêm ghi chú"),
-                MenuNode.Action("notes.list", "📋 Danh sách")),
-            MenuNode.Submenu("reminders", "⏰ Nhắc việc", "Đặt lời nhắc để không bỏ lỡ việc quan trọng.",
-                MenuNode.Action("reminders.add", "➕ Tạo nhắc việc"),
-                MenuNode.Action("reminders.list", "📋 Danh sách")),
-            MenuNode.Submenu("finance", "💰 Thu chi", "Ghi lại khoản thu, khoản chi và xem tổng kết.",
-                MenuNode.Action("finance.income", "➕ Khoản thu"),
-                MenuNode.Action("finance.expense", "➖ Khoản chi"),
-                MenuNode.Action("finance.summary", "📊 Tổng kết")),
-            MenuNode.Submenu("settings", "⚙️ Cài đặt", "Tuỳ chỉnh bot theo ý bạn.",
-                MenuNode.Action("settings.notify", "🔔 Thông báo"),
-                MenuNode.Action("settings.lang", "🌐 Ngôn ngữ")),
-            MenuNode.Submenu(HelpId, "❓ Trợ giúp",
-                """
-                <b>Các lệnh</b>
-                /start — Khởi động bot
-                /menu — Mở menu chính
-                /help — Xem hướng dẫn này
-
-                <b>Dùng menu</b>
-                • Bấm vào một nhóm để xem chức năng bên trong
-                • ⬅️ Quay lại / 🏠 Menu chính để di chuyển
-                • ✖️ Đóng menu để thu gọn, 📂 Mở menu để mở lại đúng trang đang xem
-                • Nút 📋 Menu ở bàn phím luôn sẵn sàng để mở menu mới
-                """));
+        MenuNode.Submenu(RootId, Copy.Main, Copy.MainBody,
+            MenuNode.Submenu("notes", Copy.Notes, Copy.NotesBody,
+                MenuNode.Action("notes.add", Copy.NotesAdd),
+                MenuNode.Action("notes.list", Copy.List)),
+            MenuNode.Submenu("reminders", Copy.Reminders, Copy.RemindersBody,
+                MenuNode.Action("reminders.add", Copy.RemindersAdd),
+                MenuNode.Action("reminders.list", Copy.List)),
+            MenuNode.Submenu("finance", Copy.Finance, Copy.FinanceBody,
+                MenuNode.Action("finance.income", Copy.FinanceIncome),
+                MenuNode.Action("finance.expense", Copy.FinanceExpense),
+                MenuNode.Action("finance.summary", Copy.FinanceSummary)),
+            MenuNode.Submenu("settings", Copy.Settings, Copy.SettingsBody,
+                MenuNode.Action("settings.notify", Copy.SettingsNotifications),
+                MenuNode.Action("settings.lang", Copy.SettingsLanguage)),
+            MenuNode.Submenu(HelpId, Copy.Help, Copy.HelpBody));
 }

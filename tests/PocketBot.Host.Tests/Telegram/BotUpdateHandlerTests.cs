@@ -1,52 +1,67 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Time.Testing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
-using PocketBot.Core;
-using PocketBot.Core.Access;
-using PocketBot.Core.Menus;
-using PocketBot.Core.Messaging;
-using PocketBot.Core.Routing;
 using PocketBot.Core.Texts;
 using PocketBot.Host.Telegram;
 using Telegram.Bot;
-using Telegram.Bot.Polling;
+using Telegram.Bot.Exceptions;
+using Telegram.Bot.Requests;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace PocketBot.Host.Tests.Telegram;
 
-public class BotUpdateHandlerTests
+/// <summary>The real wiring from update to Bot API request, with only the Telegram HTTP client replaced.</summary>
+public sealed class BotUpdateHandlerTests : IDisposable
 {
     private const long ChatId = 1001;
     private static readonly User Anh = new() { Id = 42, FirstName = "Anh" };
 
-    private readonly IChatGateway _chat = Substitute.For<IChatGateway>();
     private readonly ITelegramBotClient _client = Substitute.For<ITelegramBotClient>();
-    private readonly FakeTimeProvider _time = new();
+    private readonly ServiceProvider _provider;
     private readonly BotUpdateHandler _handler;
 
     public BotUpdateHandlerTests()
     {
-        var router = new ServiceCollection()
-            .AddPocketBotCore()
-            .AddSingleton(new AccessPolicy([Anh.Id]))
-            .AddSingleton(_chat)
-            .BuildServiceProvider()
-            .GetRequiredService<UpdateRouter>();
-        _handler = new BotUpdateHandler(router, _chat, new PollingBackoff(), _time, NullLogger<BotUpdateHandler>.Instance);
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Telegram:BotToken"] = "123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw",
+            ["Telegram:AllowedUserIds:0"] = "42",
+        }).Build();
+        _provider = new ServiceCollection()
+            .AddFakeLogging()
+            .AddPocketBot(config)
+            .AddSingleton(_client)
+            .BuildServiceProvider();
+        _handler = _provider.GetRequiredService<BotUpdateHandler>();
     }
+
+    public void Dispose() => _provider.Dispose();
+
+    private FakeLogCollector Logs => _provider.GetFakeLogCollector();
 
     private static Update TextFromAnh(string text) =>
         new() { Message = new Message { Id = 5, From = Anh, Chat = new Chat { Id = ChatId, Type = ChatType.Private }, Text = text } };
 
+    private void SendingTheMenuFails(Exception failure) =>
+        _client.SendRequest(Arg.Is<SendMessageRequest>(r => r.ReplyMarkup is InlineKeyboardMarkup), Arg.Any<CancellationToken>())
+            .ThrowsAsync(failure);
+
+    private static RequestException NetworkDown() =>
+        new("Bot API Service Failure: HttpRequestException: network down", new HttpRequestException("network down"));
+
     [Fact]
     public async Task Incoming_message_is_routed_to_the_bot()
     {
-        await _handler.HandleUpdateAsync(_client, TextFromAnh("/menu"), CancellationToken.None);
+        await _handler.HandleAsync(TextFromAnh("/menu"), CancellationToken.None);
 
-        await _chat.Received(1).SendMenuAsync(ChatId, Arg.Any<MenuView>(), Arg.Any<CancellationToken>());
+        var menu = _client.Sent<SendMessageRequest>().ShouldHaveSingleItem();
+        menu.ChatId.Identifier.ShouldBe(ChatId);
+        menu.ReplyMarkup.ShouldBeOfType<InlineKeyboardMarkup>();
     }
 
     [Fact]
@@ -54,28 +69,36 @@ public class BotUpdateHandlerTests
     {
         var edited = new Update { EditedMessage = TextFromAnh("/menu").Message };
 
-        await _handler.HandleUpdateAsync(_client, edited, CancellationToken.None);
+        await _handler.HandleAsync(edited, CancellationToken.None);
 
-        _chat.ReceivedCalls().ShouldBeEmpty();
+        _client.SentRequests().ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Failure_while_handling_is_contained_and_the_user_is_told_to_retry()
     {
-        _chat.SendMenuAsync(Arg.Any<long>(), Arg.Any<MenuView>(), Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("network down"));
+        var failure = NetworkDown();
+        SendingTheMenuFails(failure);
 
-        await Should.NotThrowAsync(() => _handler.HandleUpdateAsync(_client, TextFromAnh("/menu"), CancellationToken.None));
+        await Should.NotThrowAsync(() => _handler.HandleAsync(TextFromAnh("/menu"), CancellationToken.None));
 
-        await _chat.Received(1).SendTextAsync(ChatId, BotTexts.GenericError, false, Arg.Any<CancellationToken>());
+        var notice = _client.Sent<SendMessageRequest>().Last();
+        notice.ChatId.Identifier.ShouldBe(ChatId);
+        notice.Text.ShouldBe(BotTexts.GenericError);
+        notice.ReplyMarkup.ShouldBeNull();
+        Logs.GetSnapshot().ShouldContain(r => r.Level == LogLevel.Error && r.Exception == failure);
     }
 
     [Fact]
     public async Task Failure_to_deliver_the_error_notice_is_contained_too()
     {
-        _chat.SendMenuAsync(Arg.Any<long>(), Arg.Any<MenuView>(), Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("network down"));
-        _chat.SendTextAsync(Arg.Any<long>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).ThrowsAsync(new HttpRequestException("still down"));
+        SendingTheMenuFails(NetworkDown());
+        _client.SendRequest(Arg.Is<SendMessageRequest>(r => r.Text == BotTexts.GenericError), Arg.Any<CancellationToken>())
+            .ThrowsAsync(NetworkDown());
 
-        await Should.NotThrowAsync(() => _handler.HandleUpdateAsync(_client, TextFromAnh("/menu"), CancellationToken.None));
+        await Should.NotThrowAsync(() => _handler.HandleAsync(TextFromAnh("/menu"), CancellationToken.None));
+
+        Logs.LatestRecord.Level.ShouldBe(LogLevel.Warning);
     }
 
     [Fact]
@@ -83,52 +106,11 @@ public class BotUpdateHandlerTests
     {
         using var shutdown = new CancellationTokenSource();
         await shutdown.CancelAsync();
-        _chat.SendMenuAsync(Arg.Any<long>(), Arg.Any<MenuView>(), Arg.Any<CancellationToken>()).ThrowsAsync(new OperationCanceledException(shutdown.Token));
+        SendingTheMenuFails(new OperationCanceledException(shutdown.Token));
 
-        await Should.ThrowAsync<OperationCanceledException>(() => _handler.HandleUpdateAsync(_client, TextFromAnh("/menu"), shutdown.Token));
+        await Should.ThrowAsync<OperationCanceledException>(() => _handler.HandleAsync(TextFromAnh("/menu"), shutdown.Token));
 
-        await _chat.DidNotReceive().SendTextAsync(Arg.Any<long>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Polling_errors_wait_longer_each_time()
-    {
-        var first = _handler.HandleErrorAsync(_client, new HttpRequestException(), HandleErrorSource.PollingError, CancellationToken.None);
-        await WaitsFor(first, TimeSpan.FromSeconds(1));
-
-        var second = _handler.HandleErrorAsync(_client, new HttpRequestException(), HandleErrorSource.PollingError, CancellationToken.None);
-        await WaitsFor(second, TimeSpan.FromSeconds(2));
-    }
-
-    [Fact]
-    public async Task A_successful_update_resets_the_polling_backoff()
-    {
-        await WaitsFor(
-            _handler.HandleErrorAsync(_client, new HttpRequestException(), HandleErrorSource.PollingError, CancellationToken.None),
-            TimeSpan.FromSeconds(1));
-
-        await _handler.HandleUpdateAsync(_client, TextFromAnh("/menu"), CancellationToken.None);
-
-        await WaitsFor(
-            _handler.HandleErrorAsync(_client, new HttpRequestException(), HandleErrorSource.PollingError, CancellationToken.None),
-            TimeSpan.FromSeconds(1));
-    }
-
-    [Fact]
-    public async Task Non_polling_errors_are_logged_without_delaying()
-    {
-        var task = _handler.HandleErrorAsync(_client, new InvalidOperationException(), HandleErrorSource.FatalError, CancellationToken.None);
-
-        task.IsCompleted.ShouldBeTrue();
-        await task;
-    }
-
-    private async Task WaitsFor(Task task, TimeSpan delay)
-    {
-        _time.Advance(delay - TimeSpan.FromMilliseconds(1));
-        task.IsCompleted.ShouldBeFalse();
-
-        _time.Advance(TimeSpan.FromMilliseconds(1));
-        await task.WaitAsync(TimeSpan.FromSeconds(5));
+        _client.Sent<SendMessageRequest>().ShouldNotContain(r => r.Text == BotTexts.GenericError);
+        Logs.GetSnapshot().ShouldNotContain(r => r.Level >= LogLevel.Warning);
     }
 }

@@ -4,7 +4,7 @@ A personal Telegram bot written in C# (.NET 10). It receives messages, replies, 
 
 ## Features
 
-- **Telegram connection** via long polling, so no domain or HTTPS is needed. When Telegram is unreachable, the bot waits progressively longer between retries (1s → 30s) and recovers on its own.
+- **Telegram connection** via long polling, so no domain or HTTPS is needed. When Telegram is unreachable, at startup or while running, the bot waits progressively longer between retries (1s → 30s) and recovers on its own. A rejected token stops it right away.
 - **Inline menu** edited in place (no chat spam), with a breadcrumb, `⬅️ Quay lại` (Back) and `🏠 Menu chính` (Main menu).
 - **Collapsible menu**: `✖️ Đóng menu` (Close) folds the menu into `📂 Mở menu` (Open), which reopens it on the page you were viewing. The `📋 Menu` button always stays on the keyboard.
 - **Main menu**: 📝 Ghi chú (Notes) · ⏰ Nhắc việc (Reminders) · 💰 Thu chi (Finance) · ⚙️ Cài đặt (Settings) · ❓ Trợ giúp (Help). The features inside currently reply "🚧 đang phát triển" (in development).
@@ -68,6 +68,6 @@ tests/
 
 ### Adding a feature
 
-1. Declare the node in `src/PocketBot.Core/Menus/DefaultMenu.cs`.
+1. Declare the node in `src/PocketBot.Core/Menus/DefaultMenu.cs`; its label and body text go in `BotTexts.Menu` (`src/PocketBot.Core/Texts/BotTexts.cs`).
 2. Implement `IMenuAction` with a `NodeId` matching that node, then register it in DI. Tapping the button runs the action.
-3. For a new `/xyz` command, implement `ICommandHandler`.
+3. For a new `/xyz` command, implement `ICommandHandler`, add it to `BotBootstrapper.Commands`, and add its line to `BotTexts.Menu.HelpBody`.

@@ -1,4 +1,5 @@
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using PocketBot.Core.Menus;
@@ -19,11 +20,12 @@ public class TelegramChatGatewayTests
     private static readonly MenuView Menu = new("<b>🏠 Menu chính</b>", [[new MenuButton("💰 Thu chi", "nav:finance")]]);
 
     private readonly ITelegramBotClient _client = Substitute.For<ITelegramBotClient>();
+    private readonly FakeLogger<TelegramChatGateway> _logger = new();
     private readonly TelegramChatGateway _gateway;
 
     public TelegramChatGatewayTests()
     {
-        _gateway = new TelegramChatGateway(_client, NullLogger<TelegramChatGateway>.Instance);
+        _gateway = new TelegramChatGateway(_client, _logger);
     }
 
     private List<T> Sent<T>() => _client.Sent<T>();
@@ -98,6 +100,8 @@ public class TelegramChatGatewayTests
         var fallback = Sent<SendMessageRequest>().ShouldHaveSingleItem();
         fallback.Text.ShouldBe(Menu.Html);
         fallback.ReplyMarkup.ShouldBeOfType<InlineKeyboardMarkup>();
+        _logger.LatestRecord.Level.ShouldBe(LogLevel.Information);
+        _logger.LatestRecord.Message.ShouldContain(telegramError);
     }
 
     [Fact]

@@ -8,7 +8,9 @@ using User = Telegram.Bot.Types.User;
 
 namespace PocketBot.Host.Telegram;
 
-/// <summary>One-time startup handshake with Telegram before polling begins.</summary>
+/// <summary>
+/// Startup handshake with Telegram before polling begins; <see cref="BotPollingService"/> repeats it while Telegram is unreachable.
+/// </summary>
 internal sealed partial class BotBootstrapper(
     ITelegramBotClient client,
     IOptions<TelegramOptions> options,
@@ -22,7 +24,10 @@ internal sealed partial class BotBootstrapper(
     ];
 
     /// <summary>Verifies the token, clears any webhook (polling and webhooks are exclusive) and publishes the "/" command list.</summary>
-    /// <exception cref="global::Telegram.Bot.Exceptions.ApiRequestException">The token is rejected; startup must stop.</exception>
+    /// <exception cref="global::Telegram.Bot.Exceptions.RequestException">
+    /// Telegram is unreachable or refused a call. <see cref="TelegramErrors.IsTransient"/> recognises the failures worth
+    /// retrying; any other refusal (e.g. a rejected token) means startup must stop.
+    /// </exception>
     public async Task<User> InitializeAsync(CancellationToken cancellationToken)
     {
         var me = await client.GetMe(cancellationToken);

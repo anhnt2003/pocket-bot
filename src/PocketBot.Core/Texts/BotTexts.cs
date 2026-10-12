@@ -1,3 +1,5 @@
+using PocketBot.Core.Commands;
+
 namespace PocketBot.Core.Texts;
 
 /// <summary>Every user-facing string in one place (Telegram HTML where noted).</summary>
@@ -58,4 +60,68 @@ public static class BotTexts
     public const string StartCommandDescription = "Khởi động bot";
     public const string MenuCommandDescription = "Mở menu chính";
     public const string HelpCommandDescription = "Hướng dẫn sử dụng";
+
+    /// <summary>Copy of <see cref="Menus.DefaultMenu"/>: labels are plain text, bodies are HTML.</summary>
+    public static class Menu
+    {
+        /// <summary>The main menu is titled like the button that leads to it.</summary>
+        public const string Main = HomeButton;
+
+        /// <summary>HTML.</summary>
+        public const string MainBody = "Chọn chức năng bạn cần 👇";
+
+        /// <summary>Shared by every feature's "list" action.</summary>
+        public const string List = "📋 Danh sách";
+
+        public const string Notes = "📝 Ghi chú";
+
+        /// <summary>HTML.</summary>
+        public const string NotesBody = "Lưu lại ý tưởng và việc cần nhớ.";
+
+        public const string NotesAdd = "➕ Thêm ghi chú";
+
+        public const string Reminders = "⏰ Nhắc việc";
+
+        /// <summary>HTML.</summary>
+        public const string RemindersBody = "Đặt lời nhắc để không bỏ lỡ việc quan trọng.";
+
+        public const string RemindersAdd = "➕ Tạo nhắc việc";
+
+        public const string Finance = "💰 Thu chi";
+
+        /// <summary>HTML.</summary>
+        public const string FinanceBody = "Ghi lại khoản thu, khoản chi và xem tổng kết.";
+
+        public const string FinanceIncome = "➕ Khoản thu";
+        public const string FinanceExpense = "➖ Khoản chi";
+        public const string FinanceSummary = "📊 Tổng kết";
+
+        public const string Settings = "⚙️ Cài đặt";
+
+        /// <summary>HTML.</summary>
+        public const string SettingsBody = "Tuỳ chỉnh bot theo ý bạn.";
+
+        public const string SettingsNotifications = "🔔 Thông báo";
+        public const string SettingsLanguage = "🌐 Ngôn ngữ";
+
+        public const string Help = "❓ Trợ giúp";
+
+        /// <summary>
+        /// HTML. Built from the command descriptions and button labels so its wording cannot drift from them;
+        /// a new command still needs its own line here. Interpolated labels must stay free of &lt; &gt; &amp;.
+        /// </summary>
+        public const string HelpBody =
+            $"""
+            <b>Các lệnh</b>
+            /{CommandNames.Start} — {StartCommandDescription}
+            /{CommandNames.Menu} — {MenuCommandDescription}
+            /{CommandNames.Help} — {HelpCommandDescription}
+
+            <b>Dùng menu</b>
+            • Bấm vào một nhóm để xem chức năng bên trong
+            • {BackButton} / {HomeButton} để di chuyển
+            • {CloseMenuButton} để thu gọn, {OpenMenuButton} để mở lại đúng trang đang xem
+            • Nút {MenuShortcutButton} ở bàn phím luôn sẵn sàng để mở menu mới
+            """;
+    }
 }

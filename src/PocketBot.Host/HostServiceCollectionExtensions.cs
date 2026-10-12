@@ -5,7 +5,6 @@ using PocketBot.Core.Messaging;
 using PocketBot.Host.Configuration;
 using PocketBot.Host.Telegram;
 using Telegram.Bot;
-using Telegram.Bot.Polling;
 
 namespace PocketBot.Host;
 
@@ -26,7 +25,7 @@ public static class HostServiceCollectionExtensions
         services.AddSingleton<IChatGateway, TelegramChatGateway>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<PollingBackoff>();
-        services.AddSingleton<IUpdateHandler, BotUpdateHandler>();
+        services.AddSingleton<BotUpdateHandler>();
         services.AddSingleton<BotBootstrapper>();
         services.AddHostedService<BotPollingService>();
         return services;

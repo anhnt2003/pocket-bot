@@ -22,12 +22,13 @@ dotnet run --project src/PocketBot.Host             # needs Telegram:BotToken (s
 - All user-facing copy (Vietnamese) goes in `src/PocketBot.Core/Texts/BotTexts.cs`. Texts are Telegram HTML; toasts are plain text.
 - Any user-supplied text placed into HTML goes through `TelegramHtml.Escape` (not `WebUtility.HtmlEncode`, which mangles Vietnamese/emoji).
 - `TreatWarningsAsErrors` + `AnalysisLevel=latest-recommended` are on; use `[LoggerMessage]` for logging.
+- Polling is our own loop in `BotPollingService`, not `ReceiveAsync`: the library has no hook for an empty successful poll, which must reset `PollingBackoff`. Startup retries transient failures (`TelegramErrors.IsTransient`); other Bot API refusals stop the host.
 
 ## Adding a feature
 
-1. Menu entry: add/adjust nodes in `DefaultMenu.Build()` (ids are a contract with callbacks).
+1. Menu entry: add/adjust nodes in `DefaultMenu.Build()` (ids are a contract with callbacks); their labels/bodies go in `BotTexts.Menu`.
 2. Behaviour: implement `IMenuAction` with a matching `NodeId` and register it in DI; unregistered actions show "đang phát triển".
-3. New slash command: implement `ICommandHandler` and register it; add it to `BotBootstrapper.Commands` so it appears in Telegram's "/" list.
+3. New slash command: implement `ICommandHandler` and register it; add it to `BotBootstrapper.Commands` so it appears in Telegram's "/" list, and add its line to `BotTexts.Menu.HelpBody` (a test checks Help lists every command).
 
 ## Testing (TDD is mandatory)
 

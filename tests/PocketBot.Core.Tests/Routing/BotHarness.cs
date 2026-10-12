@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PocketBot.Core.Access;
+using PocketBot.Core.Commands;
 using PocketBot.Core.Menus;
 using PocketBot.Core.Messaging;
 using PocketBot.Core.Routing;
@@ -36,6 +37,7 @@ public sealed class BotHarness
         _router = provider.GetRequiredService<UpdateRouter>();
         Menus = provider.GetRequiredService<MenuRenderer>();
         Catalog = provider.GetRequiredService<MenuCatalog>();
+        Commands = [.. provider.GetServices<ICommandHandler>()];
     }
 
     public FakeChatGateway Chat { get; } = new();
@@ -43,6 +45,9 @@ public sealed class BotHarness
     public MenuRenderer Menus { get; }
 
     public MenuCatalog Catalog { get; }
+
+    /// <summary>Every slash command the router answers.</summary>
+    public IReadOnlyList<ICommandHandler> Commands { get; }
 
     public MenuView Page(string id) => Menus.Render(Catalog.Find(id)!);
 

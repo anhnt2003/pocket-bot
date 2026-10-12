@@ -50,6 +50,17 @@ public class UpdateRouterTests
     }
 
     [Fact]
+    public async Task Help_lists_every_registered_slash_command()
+    {
+        await _bot.SendText("/help");
+
+        var help = _bot.Chat.Calls.ShouldHaveSingleItem().ShouldBeOfType<SentMenu>().View.Html;
+        _bot.Commands.ShouldNotBeEmpty();
+        _bot.Commands.Select(c => $"/{c.Command} — ")
+            .ShouldAllBe(line => help.Contains(line, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Unknown_command_explains_and_points_to_help()
     {
         await _bot.SendText("/xyz");

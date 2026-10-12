@@ -1,6 +1,9 @@
 namespace PocketBot.Host.Telegram;
 
-/// <summary>Exponential wait between failed polls (1s, 2s, 4s… capped at 30s) so an outage doesn't spin the CPU.</summary>
+/// <summary>
+/// Exponential wait between failed attempts to reach Telegram, at startup or while polling (1s, 2s, 4s… capped at 30s),
+/// so an outage doesn't spin the CPU.
+/// </summary>
 internal sealed class PollingBackoff
 {
     private static readonly TimeSpan Initial = TimeSpan.FromSeconds(1);
